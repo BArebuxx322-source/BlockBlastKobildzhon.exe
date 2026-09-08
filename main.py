@@ -79,7 +79,6 @@ SHAPES = [
     [(0, 0), (0, 1), (0, 2), (0, 3)],
 ]
 
-
 class KobildzhonBlock:
     """Класс блока с изображением Кобильджона (или заглушки)"""
     def __init__(self, image_path=None):
@@ -87,7 +86,6 @@ class KobildzhonBlock:
         self.load_image(image_path)
 
     def load_image(self, image_path):
-        """Загрузка изображения"""
         try:
             if image_path and os.path.exists(image_path):
                 self.image = pygame.image.load(image_path).convert_alpha()
@@ -112,10 +110,8 @@ class KobildzhonBlock:
             self.image = None
 
     def draw(self, screen, x, y):
-        """Отрисовка блока"""
         if self.image:
             screen.blit(self.image, (x + 2, y + 2))
-
 
 class BlockBlastKobildzhon:
     def __init__(self):
@@ -139,15 +135,22 @@ class BlockBlastKobildzhon:
         self.spawn_shapes()
 
     def load_images(self):
-        """Загрузка всех изображений Кобильджона с поддержкой любых имён"""
-        if not os.path.exists(IMAGE_DIR):
-            os.makedirs(IMAGE_DIR)
-            print(f"Создана папка {IMAGE_DIR}. Положите туда изображения.")
+        """Загрузка всех изображений с правильным путём"""
+        if getattr(sys, 'frozen', False):
+            base_path = os.path.dirname(sys.executable)
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        
+        image_dir = os.path.join(base_path, "kobildzhon_images")
+        
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+            print(f"Создана папка {image_dir}. Положите туда изображения.")
         
         available_images = []
-        for filename in os.listdir(IMAGE_DIR):
+        for filename in os.listdir(image_dir):
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
-                filepath = os.path.join(IMAGE_DIR, filename)
+                filepath = os.path.join(image_dir, filename)
                 try:
                     test_img = pygame.image.load(filepath)
                     available_images.append(filepath)
@@ -155,7 +158,7 @@ class BlockBlastKobildzhon:
                     print(f"Не удалось загрузить файл: {filename}")
         
         if not available_images:
-            print(f"Нет изображений в {IMAGE_DIR}. Использую заглушки.")
+            print(f"Нет изображений в {image_dir}. Использую заглушки.")
             available_images = [None]
         
         num_images = min(8, len(available_images))
@@ -163,7 +166,6 @@ class BlockBlastKobildzhon:
             self.images[i] = KobildzhonBlock(available_images[i % len(available_images)])
 
     def spawn_shapes(self):
-        """Генерация 3 случайных фигур"""
         self.current_shapes = []
         for _ in range(3):
             shape = random.choice(SHAPES)
@@ -174,7 +176,6 @@ class BlockBlastKobildzhon:
             })
 
     def draw_background(self):
-        """Красивый градиентный фон"""
         for y in range(SCREEN_HEIGHT):
             ratio = y / SCREEN_HEIGHT
             r = int(BG_COLOR[0] * (1 - ratio) + BG_COLOR2[0] * ratio)
@@ -183,7 +184,6 @@ class BlockBlastKobildzhon:
             pygame.draw.line(self.screen, (r, g, b), (0, y), (SCREEN_WIDTH, y))
 
     def draw_grid(self):
-        """Отрисовка игрового поля"""
         pygame.draw.rect(self.screen, GRID_BG, 
                         (BOARD_OFFSET_X - 8, BOARD_OFFSET_Y - 8, 
                          BOARD_WIDTH + 16, BOARD_HEIGHT + 16),
@@ -209,7 +209,6 @@ class BlockBlastKobildzhon:
                     block.draw(self.screen, BOARD_OFFSET_X + col * CELL_SIZE, BOARD_OFFSET_Y + row * CELL_SIZE)
 
     def draw_shapes(self):
-        """Отрисовка фигур в боковой панели"""
         panel_x = BOARD_OFFSET_X + BOARD_WIDTH + 20
         panel_width = SIDEBAR_WIDTH - 30
         panel_y = 20
@@ -254,13 +253,11 @@ class BlockBlastKobildzhon:
                     pygame.draw.rect(self.screen, (255, 100, 100), (cell_x + 2, cell_y + 2, CELL_SIZE - 4, CELL_SIZE - 4), border_radius=10)
 
     def draw_score(self):
-        """Отрисовка счёта"""
         score_text = font_main.render(f"{self.score}", True, TEXT_COLOR)
         score_rect = score_text.get_rect(center=(BOARD_OFFSET_X + BOARD_WIDTH // 2, BOARD_OFFSET_Y - 40))
         self.screen.blit(score_text, score_rect)
 
     def draw_game_over(self):
-        """Экран проигрыша"""
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 200))
         self.screen.blit(overlay, (0, 0))
@@ -284,7 +281,6 @@ class BlockBlastKobildzhon:
         self.screen.blit(restart_text, restart_rect)
 
     def can_place_shape(self, shape_cells, row, col):
-        """Проверка, можно ли разместить фигуру"""
         for cell in shape_cells:
             r = row + cell[1]
             c = col + cell[0]
@@ -295,7 +291,6 @@ class BlockBlastKobildzhon:
         return True
 
     def place_shape(self, shape_data, row, col):
-        """Размещение фигуры на поле"""
         cells = shape_data['cells']
         block_id = shape_data['block_id']
         
@@ -312,7 +307,6 @@ class BlockBlastKobildzhon:
             self.spawn_shapes()
 
     def clear_lines(self):
-        """Очистка заполненных строк и столбцов"""
         lines_to_clear = []
         
         for row in range(GRID_ROWS):
@@ -334,7 +328,6 @@ class BlockBlastKobildzhon:
         self.score += len(lines_to_clear) * 150
 
     def check_game_over(self):
-        """Проверка, есть ли место для всех фигур"""
         for shape_data in self.current_shapes:
             cells = shape_data['cells']
             found_placement = False
@@ -350,7 +343,6 @@ class BlockBlastKobildzhon:
         return False
 
     def handle_events(self):
-        """Обработка событий"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -436,12 +428,10 @@ class BlockBlastKobildzhon:
                             self.is_valid_placement = False
 
     def update(self):
-        """Обновление игрового состояния"""
         if not self.game_over:
             self.game_over = self.check_game_over()
 
     def draw(self):
-        """Отрисовка всего"""
         self.draw_background()
         self.draw_grid()
         self.draw_shapes()
@@ -481,7 +471,6 @@ class BlockBlastKobildzhon:
         pygame.display.flip()
 
     def reset_game(self):
-        """Сброс игры"""
         self.grid = [[None for _ in range(GRID_COLS)] for _ in range(GRID_ROWS)]
         self.score = 0
         self.current_shapes = []
@@ -492,7 +481,6 @@ class BlockBlastKobildzhon:
         self.spawn_shapes()
 
     def run(self):
-        """Главный игровой цикл"""
         while self.running:
             self.handle_events()
             self.update()
@@ -501,7 +489,6 @@ class BlockBlastKobildzhon:
         
         pygame.quit()
         sys.exit()
-
 
 if __name__ == "__main__":
     game = BlockBlastKobildzhon()
